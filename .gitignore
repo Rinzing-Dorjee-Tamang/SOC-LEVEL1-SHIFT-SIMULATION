@@ -1,0 +1,12 @@
+# Windows junk
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Private working notes (never uploaded)
+private-notes/
+
+# Secrets and keys
+*.env
+*.key
+*.pem
