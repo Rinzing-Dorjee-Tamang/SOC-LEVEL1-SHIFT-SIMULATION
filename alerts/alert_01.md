@@ -1,38 +1,51 @@
-# SOC Alert Investigation – Failed SSH Login Attempt
+# SOC-ALERT-01: Multiple Failed SSH Logins
 
-## 1. Alert Details
+## 1. Alert Summary
 
 | Field | Value |
 |---|---|
-| Date | 06 November 2026 |
-| Time | 06:16:56 AM |
-| Host | mailsv1 |
-| Process | sshd |
-| Process ID | 1039 |
-| Event Type | Failed Password Authentication |
-| Target Username | root |
-| Source IP | 194.8.74.23 |
-| Source Port | 3768 |
-| Protocol | SSH2 |
-| Index | main |
-| Sourcetype | secure-2 |
+| Alert ID | SOC-ALERT-01 |
+| Alert Name | Multiple Failed SSH Logins from One External IP |
+| Platform | Splunk Cloud |
+| Data Source | Linux SSH authentication logs |
+| Index | `main` |
+| Sourcetype | `secure-2` |
+| Hosts in Scope | mailsv, www1, www2, www3 |
+| Detection Condition | 10 or more failed SSH logins from one source IP |
+| Initial Severity | Verify the severity configured in Splunk |
+| Status | Investigated and recommended for L2 escalation |
 
-## 2. Original Log Event
+## 2. Detection Query
 
-```log
-Thu Nov 06 2026 06:16:56 mailsv1 sshd[1039]:
-Failed password for root from 194.8.74.23 port 3768 ssh2
+```spl
+index=main sourcetype=secure-2 "Failed password"
+| rex "from (?<src_ip>\d{1,3}(?:\.\d{1,3}){3}) port"
+| stats count by src_ip
+| where count >= 10
 ```
 
-## 3. Initial Observation
+## 3. What the Query Does
 
-The log indicates that an SSH authentication attempt was made against the `root` account on the server `mailsv1`.
+1. Searches the main index for Linux SSH authentication logs containing failed password messages.
+2. Uses `rex` to extract the source IP address from each event.
+3. Uses `stats count by src_ip` to calculate the number of failed login attempts from each IP address.
+4. Uses `where count >= 10` to identify IP addresses with at least 10 failed attempts.
 
-The authentication attempt originated from IP address `194.8.74.23` and failed due to an incorrect password.
+This detection logic helps identify repeated SSH authentication failures that may indicate brute-force or credential-guessing activity.
 
-## 4. Initial Assessment
 
-- Suspicious SSH authentication attempt.
-- Privileged root account targeted.
-- External source IP identified for further investigation.
-- No conclusion about compromise can be drawn from this event alone.
+## 4. Simulation Note
+
+This project uses a static training dataset containing previously collected security logs.
+
+The detection query was tested manually in Splunk to validate its search logic against the available events.
+
+The results demonstrate how the detection could identify repeated SSH authentication failures in a live SOC environment. The simulation does not represent real-time monitoring of an active production network.
+
+## 5. Investigation
+
+The alert investigation identified suspicious authentication activity involving the source IP `194.8.74.23`.
+
+The detailed investigation, evidence, Splunk queries and final assessment are documented here:
+
+[Investigation 01 – Multiple Failed SSH Logins](../investigations/investigation_01.md)
