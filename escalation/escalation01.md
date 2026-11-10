@@ -1,56 +1,92 @@
-### Escalation Request – SOC L1 to SOC L2
+# SOC-ALERT-01: Escalation to SOC L2
 
-**Subject:** Suspicious Multi-Source SSH Authentication and Multi-Service Activity – mailsv
+## 1. Escalation Details
 
-**Affected Asset:** mailsv
+| Field | Details |
+|---|---|
+| Alert ID | SOC-ALERT-01 |
+| Alert Name | Multiple Failed SSH Login Attempts |
+| Date of Activity | 6 November 2026 |
+| Affected Hosts | `www1`, `mailsv`, `www2`, `www3` |
+| Primary Source IP | `194.8.74.23` |
+| Failed Login Attempts | 132 |
+| Initial Assessment | Suspicious SSH authentication activity |
+| Escalation | Recommended to SOC L2 |
 
-**Primary Source IP:** 194.8.74.23
+## 2. Incident Summary
 
-**Incident Summary:**
+During the investigation, I identified repeated failed SSH login attempts from the source IP `194.8.74.23`.
 
-During Splunk SIEM monitoring, suspicious authentication activity was identified against the Linux server `mailsv`.
+The activity affected four hosts and generated 132 failed authentication events. The attempts involved multiple usernames, including `root`.
 
-A total of 132 failed SSH authentication attempts were identified from source IP `194.8.74.23`, targeting five usernames: `local`, `system`, `irc`, `games`, and `root`.
+This pattern raised concern because the same source IP repeatedly attempted to access different servers.
 
-Further investigation identified additional source IP addresses generating failed password attempts against the same server. The primary source IP was also observed in events associated with other services, suggesting that the activity may extend beyond SSH authentication.
+## 3. Investigation Findings
 
-A review of the available authentication logs identified no successful login attempts from the primary source IP.
+| Finding | Result |
+|---|---|
+| Failed SSH attempts | 132 |
+| Source IP | `194.8.74.23` |
+| Hosts affected | 4 |
+| Root account targeted | Yes |
+| Successful login from the primary IP | No successful authentication observed in the investigated logs |
+| Other source IPs | Additional IPs were also found in failed SSH login events against `mailsv` |
+| VirusTotal lookup | 0 security vendor detections at the time of checking |
 
-**Actions Performed by SOC L1:**
+The initial broad search returned 313 matching events. After filtering for failed SSH password attempts, 132 events were identified.
 
-- Investigated suspicious SSH authentication logs in Splunk.
-- Identified repeated failed login attempts and targeted usernames.
-- Checked for successful authentication events.
-- Identified additional source IPs generating authentication failures.
-- Expanded the investigation to include activity involving other services.
-- Prepared indicators and findings for further threat-intelligence investigation.
+## 4. Escalation Checklist
 
-**Reason for Escalation:**
+| Check | Result |
+|---|---|
+| Alert activity investigated | Yes |
+| Source IP identified | Yes |
+| Affected hosts identified | Yes |
+| Targeted usernames reviewed | Yes |
+| Successful authentication checked | Yes |
+| External IP reputation checked | Yes |
+| Evidence documented | Yes |
+| Further investigation required | Yes |
 
-The combination of repeated authentication failures, multiple targeted usernames, activity from additional source IPs, and events involving other services warrants deeper investigation.
+## 5. Actions Taken by SOC L1
 
-**Requested SOC L2 Actions:**
+- Reviewed the SSH authentication events in Splunk.
+- Identified the source IP responsible for the repeated failures.
+- Checked which hosts and usernames were targeted.
+- Searched for successful SSH authentication from the primary IP.
+- Checked the IP address using VirusTotal.
+- Documented the findings and supporting evidence.
 
-1. Conduct deeper correlation of authentication and service logs.
-2. Investigate the source IPs and their reputation using threat-intelligence sources.
-3. Determine whether the activity represents coordinated scanning, brute-force attempts, or password spraying.
-4. Review successful authentication events across all identified source IPs.
-5. Investigate possible post-authentication activity, privilege escalation, or lateral movement.
-6. Assess whether containment measures are necessary.
+## 6. Reason for Escalation
 
-**SOC L1 Assessment:**
+I recommend escalating this alert to SOC L2 because the repeated login attempts affected multiple servers and included attempts against the `root` account.
 
-Suspicious authentication and potential multi-service reconnaissance activity. No successful authentication has been observed from the primary source IP in the investigated logs.
+Although no successful authentication from the primary IP was observed in the investigated logs, the activity still requires further review.
 
-**Escalation Status:** Recommended for SOC L2 investigation.
+The VirusTotal lookup returned no vendor detections, but this alone does not establish that the IP is safe.
 
-SOC L1 final verdict
-Escalate to L2
+## 7. Requested SOC L2 Actions
 
-Classification: Suspicious authentication activity with potential multi-service reconnaissance.
+I recommend that SOC L2:
 
-Compromise status: Not confirmed.
+1. Review the SSH authentication activity across all affected hosts.
+2. Check whether any successful login or suspicious session was missed.
+3. Investigate the additional source IP addresses.
+4. Review related events for possible follow-up activity.
+5. Determine whether the source IP should be blocked, based on the wider investigation.
 
-Severity: Requires further assessment by SOC L2 based on asset exposure, event scope and business impact.
+## 8. Final Escalation Decision
 
-Disposition: Escalate for deeper investigation and continue monitoring.
+**Decision: Recommend escalation to SOC L2.**
+
+Based on the repeated failed SSH attempts across four hosts, I consider the activity suspicious and worthy of further investigation.
+
+There is currently no confirmed evidence of a successful compromise from the primary IP in the logs reviewed. The final incident classification should be determined after further investigation.
+
+## 9. Supporting Evidence
+
+- [Alert Configuration](../alerts/alert_01.md)
+- [Investigation Notes](../investigations/investigation_01.md)
+- [Incident Report](../reports/incident_report.md)
+
+Screenshots and Splunk search results are available in the `screenshots/` folder.
