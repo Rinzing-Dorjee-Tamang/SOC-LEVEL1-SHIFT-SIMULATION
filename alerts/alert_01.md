@@ -5,47 +5,48 @@
 | Field | Value |
 |---|---|
 | Alert ID | SOC-ALERT-01 |
-| Alert Name | Multiple Failed SSH Logins from One External IP |
-| Platform | Splunk Cloud |
-| Data Source | Linux SSH authentication logs |
-| Index | `main` |
-| Sourcetype | `secure-2` |
+| Alert Name | Multiple Failed SSH Logins from One Source IP |
+| Platform | Splunk Cloud (free trial) |
+| Data Source | Linux SSH authentication logs (`index=main`, `sourcetype=secure-2`) |
 | Hosts in Scope | mailsv, www1, www2, www3 |
-| Detection Condition | 10 or more failed SSH logins from one source IP |
-| Initial Severity | Verify the severity configured in Splunk |
-| Status | Investigated and recommended for L2 escalation |
+| Detection Condition | 10 or more failed SSH logins from a single source IP, counted across all hosts in scope |
+| Alert Type | Scheduled, hourly |
+| Initial Severity | Medium |
+| Status | Investigated. See Section 6 |
 
-## 2. Detection Query
+## 2. What Fired
 
-```spl
+The detection query flagged source IPs with 10 or more failed SSH logins. I investigated 194[.]8[.]74[.]23, which had 132 failed logins across four servers (www1 62, mailsv 45, www3 19, www2 6). Three internal IPs also crossed the threshold. They are analysed separately because they also had many successful logins.
+
+## 3. Detection Query
+
+```
 index=main sourcetype=secure-2 "Failed password"
 | rex "from (?<src_ip>\d{1,3}(?:\.\d{1,3}){3}) port"
 | stats count by src_ip
 | where count >= 10
 ```
 
-## 3. What the Query Does
+## 4. What the Query Does
 
-1. Searches the main index for Linux SSH authentication logs containing failed password messages.
-2. Uses `rex` to extract the source IP address from each event.
-3. Uses `stats count by src_ip` to calculate the number of failed login attempts from each IP address.
-4. Uses `where count >= 10` to identify IP addresses with at least 10 failed attempts.
+- Finds failed SSH password events in the authentication logs.
+- Extracts the source IP address from each event with `rex`.
+- Counts failed attempts per source IP with `stats count by src_ip`.
+- Keeps only IPs with 10 or more failures with `where count >= 10`.
 
-This detection logic helps identify repeated SSH authentication failures that may indicate brute-force or credential-guessing activity.
+The threshold of 10 is a simple starting value for this simulation. A real deployment would tune it against the environment's normal failure rate.
 
+## 5. Simulation Note
 
-## 4. Simulation Note
+The data is a static training dataset, so no new events arrive over time. A scheduled alert was configured in Splunk but did not trigger. I validated the detection logic by running the query manually against the full dataset. In a live SOC, this alert would run on streaming logs.
 
-This project uses a static training dataset containing previously collected security logs.
+## 6. Outcome
 
-The detection query was tested manually in Splunk to validate its search logic against the available events.
+| Question | Answer |
+|---|---|
+| What I checked | Failed SSH login counts per source IP, targeted usernames, whether any login from the source IP succeeded, and other activity associated with the IP |
+| Verdict | True Positive (TP) |
+| Why | 194[.]8[.]74[.]23 generated 132 failed SSH logins across four servers, using 74 different usernames (4 attempts were on root). No successful login from this IP was found. This fits automated credential guessing. |
+| Escalation | Escalate to L2 – repeated authentication failures against multiple accounts indicate suspicious activity that requires further investigation. |
 
-The results demonstrate how the detection could identify repeated SSH authentication failures in a live SOC environment. The simulation does not represent real-time monitoring of an active production network.
-
-## 5. Investigation
-
-The alert investigation identified suspicious authentication activity involving the source IP `194.8.74.23`.
-
-The detailed investigation, evidence, Splunk queries and final assessment are documented here:
-
-[Investigation 01 – Multiple Failed SSH Logins](../investigations/investigation_01.md)
+Full evidence, queries and reasoning: [Investigation 01](../Investigations/Investigation_01.md)
